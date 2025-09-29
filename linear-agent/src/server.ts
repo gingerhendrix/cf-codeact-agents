@@ -1,6 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { routeAgentRequest } from "agents";
-import { AIChatAgent } from "agents/ai-chat-agent";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -9,10 +8,13 @@ import {
   readUIMessageStream,
   streamText,
   wrapLanguageModel,
+  type ModelMessage,
   type StreamTextOnFinishCallback,
-  type ToolSet
+  type ToolSet,
+  type UserModelMessage
 } from "ai";
-import { env } from "cloudflare:workers";
+import { env, WorkerEntrypoint } from "cloudflare:workers";
+import { AIChatAgent } from "./server/ai-chat-agent";
 
  const openai = createOpenAI({
    apiKey: env.OPENAI_API_KEY,
@@ -20,36 +22,49 @@ import { env } from "cloudflare:workers";
  });
 
 const model = wrapLanguageModel({
-  model: openai.responses("gpt-5-mini"),
+  model: openai.responses("gpt-5"),
   middleware: defaultSettingsMiddleware({
     settings: {
       providerOptions: {
         openai: {
-          reasoning_effort: 'minimal', 
+          reasoning_effort: 'medium', 
         },
       },
     }
   })
 });
 
-const systemPrompt = `You are a helpful AI assistant.
+const systemPrompt = `You are a helpful code execution assistant. 
 
-You can execute code to help answer user questions.  In order to execute code, use the following format:
+When given a user question, if it is possible to answer it by executing code, do so by writing a code snippet in a single JavaScript code block. Your code may use await and async functions.
 
 \`\`\`js
-// code to execute
-// you may use await to call async functions
 const result = 2 + 2;
 
-// You must return the result, and the result must be any json serializable value
+// You must return the result, the result must be any json serializable value
 return result;
 \`\`\`
 
-The resut of the code execution will be provided to you in the following message in <result></result> tags.
-
-You must always execute code to answer user questions. Do not use your own knowledge or make up answers. Always execute code to get the answer.
+The next reply to your message will contain the result of your code execution, which you can use to help answer the user's question.  Reply to the user with plain text - do not use a code block for your answer.
 `
 
+function parseCode(text: string): string | null {
+  const lines = text.split("\n");
+  const codeStart = lines.findIndex(line => line.trim().includes("```js"));
+  const codeEnd = lines.findIndex((line, index) => index > codeStart && line.trim().includes("```"));
+  if (codeStart === -1 || codeEnd === -1 || codeEnd <= codeStart) {
+    return null;
+  }
+  const code = lines.slice(codeStart + 1, codeEnd).join("\n");
+  return code;
+}
+
+export class FetchProxy extends WorkerEntrypoint {
+  fetch(request: Request): Promise<Response> {
+    console.log("FetchProxy received request:", request.url);
+    return fetch(request);
+  }
+}
 
 /**
  * Chat Agent implementation that handles real-time AI chat interactions
@@ -62,21 +77,50 @@ export class Chat extends AIChatAgent<Env> {
     onFinish: StreamTextOnFinishCallback<ToolSet>,
     _options?: { abortSignal?: AbortSignal }
   ) {
-    const result = await this.executeCode("2 + 2");
-    console.log("Result of executed code:", result);
-
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
-        const result = streamText({
-          system: systemPrompt,
-          messages: convertToModelMessages(this.messages),
-          model,
-          onFinish: onFinish,
-        });
-        for await (const chunk of result.toUIMessageStream()) {
-          writer.write(chunk);
+        const generate = async (messages: ModelMessage[]) => {
+          console.log("Generating with messages:", messages);
+          const result = streamText({
+            system: systemPrompt,
+            messages,
+            model,
+          });
+          for await (const chunk of result.toUIMessageStream()) {
+            if (chunk.type == "finish") {
+              writer.write({ ...chunk, type: "finish-step" });
+            } else {
+              writer.write(chunk);
+            }
+          }
+          return result;
         }
-        //writer.merge(result.toUIMessageStream());
+ 
+        let continueGenerating = true;
+        let messages = convertToModelMessages(this.messages);
+        while (continueGenerating) {
+          const response = await generate(messages);
+          const text = await response.text;
+          console.log("Generated text:", text);
+          const code = parseCode(text);
+          if (code) {
+            console.log("Executing code:", code);
+            const result = await this.executeCode(code);
+            console.log("Code execution result:", result);
+            const message = `<result>${result}</result>`;
+            messages.push(
+              ...(await response.response).messages,
+            {
+              role: "user",
+              content: message,
+            });
+            writer.write({ type: "data-result", data: { result, message } });
+          } else {
+            console.log("No code found, finishing.");
+            writer.write({ type: "finish" });
+            continueGenerating = false;
+          }
+        }
       }
     });
 
@@ -84,29 +128,44 @@ export class Chat extends AIChatAgent<Env> {
   }
 
   async executeCode(code: string): Promise<string> {
-    const id = crypto.randomUUID();
-    let worker = env.LOADER.get(id, async () => {
+    try {
+      const id = crypto.randomUUID();
+      let worker = env.LOADER.get(id, async () => {
 
-      return {
-        compatibilityDate: "2025-06-01",
-        mainModule: "foo.js",
-        modules: {
-          "foo.js":
-            "export default {\n" +
-            `  fetch(req, env, ctx) { return new Response(${code}); }\n` +
-            "}\n",
-        },
-        env: {
-          SOME_ENV_VAR: 123
-        },
-        globalOutbound: null,
-      };
-    });
+        return {
+          compatibilityDate: "2025-06-01",
+          mainModule: "foo.js",
+          modules: {
+            "foo.js":
+              "import { value } from '@test/module';\n" +
+              "\n" +
+              "export default {\n" +
+              "  async fetch(req, env, ctx) {\n" +
+              "    async function agentDefinedFunction() {\n" +
+              code +
+              "    }\n" +
+              "  return Response.json(await agentDefinedFunction());\n" +
+              "  }\n" +
+              "}\n",
+            "@test/module": `export const value = 42;`,
+          },
+          env: {
+            SOME_ENV_VAR: 123,
+            BROWSER: env.BROWSER,
+          },
+          globalOutbound: this.env.FETCH_PROXY,
+          //globalOutbound: null,
+        };
+      });
 
-    // Now you can get the Worker's entrypoint and send requests to it.
-    let defaultEntrypoint = worker.getEntrypoint();
-    const response = await defaultEntrypoint.fetch("http://example.com");
-    return response.text();
+      // Now you can get the Worker's entrypoint and send requests to it.
+      let defaultEntrypoint = worker.getEntrypoint();
+      const response = await defaultEntrypoint.fetch("http://example.com");
+      return response.text();
+    } catch (error) {
+      console.error("Error executing code:", error);
+      return `Error executing code: ${error}`;
+    }
   }
 }
 

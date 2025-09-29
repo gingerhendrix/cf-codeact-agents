@@ -110,7 +110,7 @@ export default function Chat() {
     status,
     sendMessage,
     stop
-  } = useAgentChat<unknown, UIMessage<{ createdAt: string }>>({
+  } = useAgentChat<unknown, UIMessage<{ createdAt: string }, { result: { message : string, result: string }}>>({
     agent
   });
 
@@ -138,7 +138,7 @@ export default function Chat() {
   return (
     <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
       <HasOpenAIKey />
-      <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-md overflow-hidden relative border border-neutral-300 dark:border-neutral-800">
+      <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-3xl flex flex-col shadow-xl rounded-md overflow-hidden relative border border-neutral-300 dark:border-neutral-800">
         <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800 flex items-center gap-3 sticky top-0 z-10">
           <div className="flex items-center justify-center h-8 w-8">
             <svg
@@ -293,6 +293,25 @@ export default function Chat() {
                                 </p>
                               </div>
                             );
+                          }
+
+                          if (part.type === "data-result") {
+                            return (
+                              // biome-ignore lint/suspicious/noArrayIndexKey: immutable index
+                              <div key={i} className="w-full">
+                                <Card
+                                  className={`p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 relative`}
+                                >
+                                  <span className="absolute -top-3 -left-2 text-base">
+                                    ✅
+                                  </span>
+                                  <div className="text-sm font-mono">
+                                    { part.data.result }
+                                  </div>
+                                </Card>
+                              </div>
+                            );
+
                           }
 
                           if (isToolUIPart(part)) {
