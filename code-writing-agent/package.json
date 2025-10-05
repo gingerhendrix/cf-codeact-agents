@@ -20,7 +20,7 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.4",
+		"@biomejs/biome": "2.2.5",
 		"@cloudflare/vite-plugin": "1.13.6",
 		"@cloudflare/vitest-pool-workers": "^0.9.6",
 		"@cloudflare/workers-types": "^4.20250926.0",

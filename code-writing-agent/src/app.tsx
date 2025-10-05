@@ -1,49 +1,26 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: it's alright */
-import { useEffect, useState, useRef, useCallback, use, Fragment } from "react";
-import { useAgent } from "agents/react";
-import { useAgentChat } from "agents/ai-react";
-import type { UIMessage } from "@ai-sdk/react";
-import type { tools } from "./tools";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
-import { Message, MessageContent } from '@/components/ai-elements/message';
+} from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   PromptInput,
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
+  PromptInputButton,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
-} from '@/components/ai-elements/prompt-input';
-import {
-  Action,
-  Actions
-} from '@/components/ai-elements/actions';
-import { Response } from '@/components/ai-elements/response';
-import { RefreshCcwIcon } from 'lucide-react';
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Loader } from '@/components/ai-elements/loader';
+} from "@/components/ai-elements/prompt-input";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 
-// Icon imports
-import {
-  CopyIcon
-} from "@phosphor-icons/react";
-
+import { ModelMessage } from "./components/model-message";
+import { useExecutionAgent } from "./hooks/useExecutionAgent";
+import { Trash } from "lucide-react";
 
 export default function Chat() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -76,13 +53,9 @@ export default function Chat() {
     scrollToBottom();
   }, [scrollToBottom]);
 
-  const agent = useAgent({
-    agent: "chat"
-  });
-
   const [agentInput, setAgentInput] = useState("");
   const handleAgentInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setAgentInput(e.target.value);
   };
@@ -94,21 +67,15 @@ export default function Chat() {
     setAgentInput("");
 
     // Send message to agent
-    await sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text: message }]
-      },
-    );
+    sendMessage(message);
   };
 
   const {
     messages: agentMessages,
     status,
     sendMessage,
-  } = useAgentChat<unknown, UIMessage<{ createdAt: string }, { result: { message : string, result: string }}>>({
-    agent
-  });
+    clearMessages,
+  } = useExecutionAgent();
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -119,107 +86,50 @@ export default function Chat() {
     <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
       <HasOpenAIKey />
       <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full">
-        <Conversation className="h-full">
-          <ConversationContent>
-            {agentMessages.map((message) => (
-              <div key={message.id}>
-                {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
-                    />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
-                        />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case 'text':
-                      return (
-                        <Fragment key={`${message.id}-${i}`}>
-                          <Message from={message.role}>
-                            <MessageContent>
-                              <Response>
-                                {part.text}
-                              </Response>
-                            </MessageContent>
-                          </Message>
-                          {message.role === 'assistant' && i === agentMessages.length - 1 && (
-                            <Actions className="mt-2">
-                              <Action
-                                onClick={() => {}}
-                                label="Retry"
-                              >
-                                <RefreshCcwIcon className="size-3" />
-                              </Action>
-                              <Action
-                                onClick={() =>
-                                  navigator.clipboard.writeText(part.text)
-                                }
-                                label="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </Action>
-                            </Actions>
-                          )}
-                        </Fragment>
-                      );
-                    case 'reasoning':
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === agentMessages.at(-1)?.id}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-            ))}
-            {status === 'submitted' && <Loader />}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
+        <div className="flex flex-col h-full">
+          <Conversation className="h-full">
+            <ConversationContent>
+              {agentMessages.map((message, i) => (
+                <ModelMessage key={i} message={message} />
+              ))}
+              {status == "submitted" && <Loader />}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-        <PromptInput onSubmit={handleAgentSubmit} className="mt-4" globalDrop multiple>
-          <PromptInputBody>
-            <PromptInputAttachments>
-              {(attachment) => <PromptInputAttachment data={attachment} />}
-            </PromptInputAttachments>
-            <PromptInputTextarea
-              onChange={handleAgentInputChange}
-              value={agentInput}
-            />
-          </PromptInputBody>
-          <PromptInputToolbar>
-            <PromptInputSubmit disabled={!agentInput && !status} status={status} />
-          </PromptInputToolbar>
-        </PromptInput>
+          <PromptInput
+            onSubmit={handleAgentSubmit}
+            className="mt-4"
+            globalDrop
+            multiple
+          >
+            <PromptInputBody>
+              <PromptInputAttachments>
+                {(attachment) => <PromptInputAttachment data={attachment} />}
+              </PromptInputAttachments>
+              <PromptInputTextarea
+                onChange={handleAgentInputChange}
+                value={agentInput}
+              />
+            </PromptInputBody>
+            <PromptInputToolbar>
+              <PromptInputSubmit
+                disabled={!agentInput && !status}
+                status={status}
+              />
+              <PromptInputButton onClick={() => clearMessages()}>
+                <Trash />
+              </PromptInputButton>
+            </PromptInputToolbar>
+          </PromptInput>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
 
 const hasOpenAiKeyPromise = fetch("/check-open-ai-key").then((res) =>
-  res.json<{ success: boolean }>()
+  res.json<{ success: boolean }>(),
 );
 
 function HasOpenAIKey() {

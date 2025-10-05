@@ -13,8 +13,8 @@
     "includes": ["src/**", "!node_modules", "!dist", "!**/*.css", "!./env.d.ts"]
   },
   "formatter": {
-    "enabled": false,
-    "indentStyle": "tab"
+    "enabled": true,
+    "indentStyle": "space"
   },
   "javascript": {
     "formatter": {
