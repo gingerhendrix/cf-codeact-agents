@@ -16,7 +16,7 @@ return result;
 The next reply to your message will contain the result of your code execution, which you can use to help answer the user's question.  Reply to the user with plain text - do not use a code block for your answer.
 `;
 
-export class ExecutionChatAgent extends BaseExecutionChatAgent {
+export class SimpleChatAgent extends BaseExecutionChatAgent {
   private _codeExecutor: CodeExecutor;
   constructor(ctx: AgentContext, env: Env) {
     super(ctx, env);
