@@ -154,7 +154,7 @@ export default function Chat() {
                   <PromptInputModelSelectTrigger>
                     <PromptInputModelSelectValue />
                   </PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectContent>
+                  <PromptInputModelSelectContent className="text-white bg-background">
                     {agents.map((agent) => (
                       <PromptInputModelSelectItem
                         key={agent.value}
