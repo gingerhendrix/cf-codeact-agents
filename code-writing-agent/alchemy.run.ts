@@ -1,18 +1,20 @@
 import { DurableObjectNamespace, Vite, WorkerLoader } from "alchemy/cloudflare"
 import alchemy from "alchemy";
 
-const app = await alchemy("cf-code-act-agent");
+export const app = await alchemy("cf-code-act-agent");
 
-const ExecutionChatAgent = DurableObjectNamespace("ExecutionChatAgent", {
-	className: "ExecutionChatAgent",
-	sqlite: true,
-});
-
+function Agent(name: string) {
+	return DurableObjectNamespace(name, {
+		className: name,
+		sqlite: true,
+	});
+}
 export const website = await Vite("web", {
 	entrypoint: "src/server.ts",
 	compatibility: "node",
 	bindings: { 
-		ExecutionChat: ExecutionChatAgent,
+		ExecutionChat: Agent("ExecutionChatAgent"),
+		SimpleAgent: Agent("SimpleChatAgent"),
 		LOADER: WorkerLoader(),
 	},
 	env: {

@@ -11,7 +11,13 @@ import { useState } from "react";
 
 export type Status = "submitted" | "streaming" | "ready" | "error";
 
-export function useExecutionAgent() {
+export function useExecutionAgent({
+  name,
+  agent: agentName,
+}: {
+  name: string;
+  agent: string;
+}) {
   const [messages, setMessages] = useState<ModelMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<{
     role: "assistant";
@@ -23,7 +29,8 @@ export function useExecutionAgent() {
   const [status, setStatus] = useState<Status>("ready");
 
   const agent = useAgent({
-    agent: "execution-chat",
+    name,
+    agent: agentName,
     onMessage: (message) => {
       const msg: OutgoingMessage = JSON.parse(message.data);
       console.log("Received message:", msg);
