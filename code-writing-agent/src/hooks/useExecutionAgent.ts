@@ -26,7 +26,8 @@ export function useExecutionAgent({
     role: "assistant",
     content: [],
   });
-  const [status, setStatus] = useState<Status>("ready");
+  const [status, setStatus] = useState<Status | null>(null);
+  const [model, setModel] = useState<string>("");
 
   const agent = useAgent({
     name,
@@ -36,11 +37,14 @@ export function useExecutionAgent({
       console.log("Received message:", msg);
       if (msg.type === "init") {
         setMessages(msg.messages);
+        setModel(msg.model);
         setStatus("ready");
       } else if (msg.type === "new_message") {
         setMessages((prev) => [...prev, msg.message]);
       } else if (msg.type === "messages_cleared") {
         setMessages([]);
+      } else if (msg.type === "model_changed") {
+        setModel(msg.model);
       } else if (msg.type === "StreamEvent") {
         if (msg.event.type === "start") {
           setStatus("streaming");
@@ -84,6 +88,11 @@ export function useExecutionAgent({
   const clearMessages = () => {
     send(ClearMessagesCommand());
   };
+
+  const handleSetModel = (model: string) => {
+    agent.send(JSON.stringify({ type: "set_model", model }));
+  };
+
   return {
     agent,
     messages:
@@ -91,5 +100,7 @@ export function useExecutionAgent({
     status,
     sendMessage,
     clearMessages,
+    model,
+    setModel: handleSetModel,
   };
 }

@@ -2,6 +2,7 @@ import { useExecutionAgent } from "@/hooks/useExecutionAgent";
 import { useState } from "react";
 import type { PromptInputMessage } from "./ai-elements/prompt-input";
 import { Conversation } from "./conversation";
+import { availableModels } from "@/shared";
 
 export function AgentChat({ name, agent }: { name: string; agent: string }) {
   const [agentInput, setAgentInput] = useState("");
@@ -15,22 +16,18 @@ export function AgentChat({ name, agent }: { name: string; agent: string }) {
     sendMessage(message);
   };
 
-  const models = [
-    {
-      name: "GPT-5",
-      value: "openai:gpt-5",
-    },
-  ];
-
-  const setModel = (model: string) => {
-    console.log("Model set to:", model);
-  };
+  const models = Object.entries(availableModels).map(([value, name]) => ({
+    name,
+    value,
+  }));
 
   const {
     messages: agentMessages,
     status,
     sendMessage,
     clearMessages,
+    setModel,
+    model: selectedModel,
   } = useExecutionAgent({ name, agent });
 
   return (
@@ -42,7 +39,7 @@ export function AgentChat({ name, agent }: { name: string; agent: string }) {
       status={status}
       clearMessages={clearMessages}
       models={models}
-      selectedModel="openai:gpt-5"
+      selectedModel={selectedModel}
       onModelChange={setModel}
     />
   );

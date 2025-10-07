@@ -1,31 +1,25 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import {
   Agent,
   type AgentContext,
   type Connection,
   type WSMessage,
 } from "agents";
-import {
-  defaultSettingsMiddleware,
-  streamText,
-  wrapLanguageModel,
-  type LanguageModel,
-  type ModelMessage,
-} from "ai";
+import { streamText, type ModelMessage } from "ai";
+import { CodeExecutor } from "./code-executor.js";
 import {
   InitResponse,
   type IncomingMessage,
   type OutgoingMessage,
   type StreamPart,
 } from "./messages.js";
-import { CodeExecutor } from "./code-executor.js";
+import { registry, type AvailableModel } from "./model-provider-registry.js";
 import { parseCode } from "./utils/parseCode.js";
 
 type State = unknown;
 
 export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
   messages: ModelMessage[];
-  model: LanguageModel;
+  model: AvailableModel;
 
   constructor(ctx: AgentContext, env: Env) {
     super(ctx, env);
@@ -38,24 +32,7 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
     this.messages = (this.sql`select * from messages` || []).map((row) => {
       return JSON.parse(row.message as string);
     });
-
-    const openai = createOpenAI({
-      apiKey: env.OPENAI_API_KEY,
-      baseURL: env.GATEWAY_BASE_URL + "/openai",
-    });
-
-    this.model = wrapLanguageModel({
-      model: openai.responses("gpt-5"),
-      middleware: defaultSettingsMiddleware({
-        settings: {
-          providerOptions: {
-            openai: {
-              reasoning_effort: "medium",
-            },
-          },
-        },
-      }),
-    });
+    this.model = "openai:gpt-5";
   }
 
   abstract codeExecutor(): CodeExecutor;
@@ -76,7 +53,15 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
       } else if (data.type === "send_message") {
         await this.handleSendMessage(connection, data.message);
       } else if (data.type === "clear_messages") {
-        await this.hnandleClearMessages();
+        await this.handleClearMessages();
+      } else if (data.type === "set_model") {
+        this.model = data.model as AvailableModel;
+        this.broadcast(
+          JSON.stringify({
+            type: "model_changed",
+            model: this.model,
+          }),
+        );
       } else {
         const unknown: never = data;
         console.error("Unknown message type:", unknown);
@@ -87,7 +72,7 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
     }
   }
 
-  private async hnandleClearMessages() {
+  private async handleClearMessages() {
     this.messages = [];
     this.sql`delete from messages`;
     const outgoing: OutgoingMessage = {
@@ -132,7 +117,7 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
   private async generate(messages: ModelMessage[]) {
     const result = streamText({
       system: this.systemPrompt(),
-      model: this.model,
+      model: registry.languageModel(this.model),
       messages,
     });
     for await (const part of result.fullStream) {
@@ -142,7 +127,7 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
   }
 
   async handleInit(connection: Connection) {
-    this._reply(connection, InitResponse(this.messages));
+    this._reply(connection, InitResponse(this.messages, this.model));
   }
 
   private _reply(connection: Connection, message: OutgoingMessage) {

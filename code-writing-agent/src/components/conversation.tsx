@@ -40,7 +40,7 @@ export const Conversation = ({
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (message: PromptInputMessage) => void;
-  status: Status;
+  status: Status | null;
   onModelChange: (model: string) => void;
   clearMessages: () => void;
   models: { name: string; value: string }[];
@@ -93,7 +93,10 @@ export const Conversation = ({
               <Trash />
             </PromptInputButton>
           </PromptInputTools>
-          <PromptInputSubmit disabled={!input && !status} status={status} />
+          <PromptInputSubmit
+            disabled={!input && !status}
+            status={status ?? "ready"}
+          />
         </PromptInputToolbar>
       </PromptInput>
     </div>

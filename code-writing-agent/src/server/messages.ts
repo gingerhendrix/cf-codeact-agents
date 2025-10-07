@@ -14,11 +14,39 @@ export function InitCommand(): InitCommand {
 export type InitResponse = {
   type: "init";
   messages: ModelMessage[];
+  model: string;
 };
-export function InitResponse(messages: ModelMessage[]): InitResponse {
+export function InitResponse(
+  messages: ModelMessage[],
+  model: string,
+): InitResponse {
   return {
     type: "init",
     messages,
+    model,
+  };
+}
+
+export type SetModelCommand = {
+  type: "set_model";
+  model: string;
+};
+
+export function SetModelCommand(model: string): SetModelCommand {
+  return {
+    type: "set_model",
+    model,
+  };
+}
+
+export type ModelChangedEvent = {
+  type: "model_changed";
+  model: string;
+};
+export function ModelChangedEvent(model: string): ModelChangedEvent {
+  return {
+    type: "model_changed",
+    model,
   };
 }
 
@@ -58,10 +86,13 @@ export type MessagesClearedEvent = {
 
 export type IncomingMessage =
   | InitCommand
+  | SetModelCommand
   | SendMessageCommand
   | ClearMessagesCommand;
+
 export type OutgoingMessage =
   | InitResponse
   | NewMessageEvent
+  | ModelChangedEvent
   | StreamEvent
   | MessagesClearedEvent;
