@@ -1,4 +1,4 @@
-import { DurableObjectNamespace, Vite, WorkerLoader } from "alchemy/cloudflare"
+import { DurableObjectNamespace, Vite, Worker, WorkerLoader } from "alchemy/cloudflare"
 import alchemy from "alchemy";
 
 export const app = await alchemy("cf-code-act-agent");
@@ -9,6 +9,12 @@ function Agent(name: string) {
 		sqlite: true,
 	});
 }
+
+export const loggingOutbound = await Worker("logging-outbound", {
+	entrypoint: "src/server/outbound/logging.ts",
+	url: false,
+});
+
 export const website = await Vite("web", {
 	entrypoint: "src/server.ts",
 	compatibility: "node",
@@ -16,6 +22,7 @@ export const website = await Vite("web", {
 		SimpleAgent: Agent("SimpleAgent"),
 		FetchAgent: Agent("FetchAgent"),
 		LOADER: WorkerLoader(),
+		LoggingOutbound: loggingOutbound,
 	},
 	env: {
 		OPENAI_API_KEY: process.env.OPENAI_API_KEY,

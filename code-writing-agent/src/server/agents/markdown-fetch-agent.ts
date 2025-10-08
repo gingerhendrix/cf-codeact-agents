@@ -1,7 +1,6 @@
 import type { AgentContext } from "agents";
 import { CodeExecutor } from "../code-executor";
 import { BaseExecutionChatAgent } from "../base-execution-chat-agent";
-import type { env } from "cloudflare:workers";
 
 const systemPrompt = `You are a helpful code execution assistant. 
 
@@ -38,18 +37,13 @@ Examples: https://feeds.npr.org/1001/rss.xml (News), https://feeds.npr.org/1003/
 
 Al Jazeera (all news)
 https://www.aljazeera.com/xml/rss/all.xml
-
-
-Once you have the data you need, you should return a concise and accurate answer to the user's question. You can use markdown formatting including tables and bullet points to make your answer easier to read.
 `;
 
 export class FetchAgent extends BaseExecutionChatAgent {
   private _codeExecutor: CodeExecutor;
-  constructor(ctx: AgentContext, _env: typeof env) {
-    super(ctx, _env);
-    this._codeExecutor = new CodeExecutor(_env.LOADER, {
-      globalOutbound: _env.LoggingOutbound,
-    });
+  constructor(ctx: AgentContext, env: Env) {
+    super(ctx, env);
+    this._codeExecutor = new CodeExecutor(env.LOADER);
   }
 
   codeExecutor() {
