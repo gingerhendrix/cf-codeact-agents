@@ -99,7 +99,9 @@ export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
         this.pushMessage(msg);
       }
       const text = await result.text;
+      console.log("Generated text:", text);
       const code = parseCode(text);
+      console.log("Parsed code:", code);
 
       if (code) {
         const executionResult = await this.codeExecutor().executeCode(code);

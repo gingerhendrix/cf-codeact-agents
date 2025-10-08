@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "./components/ui/select";
 import { AgentChat } from "./components/agent-chat";
+import { availableAgents } from "./shared";
 
 export default function Chat() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -27,17 +28,12 @@ export default function Chat() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const agents = [
-    {
-      name: "Code Execution Agent",
-      value: "execution-chat",
-    },
-    {
-      name: "Simple Execution Agent",
-      value: "simple-agent",
-    },
-  ];
-  const [agent, setAgent] = useState<string>("execution-chat");
+  const agents = Object.entries(availableAgents).map(([value, name]) => ({
+    name,
+    value,
+  }));
+
+  const [agent, setAgent] = useState<string>("");
   const [name, setName] = useState<string>(crypto.randomUUID());
   const handleAgentChange = useCallback(
     (newAgent: string) => {
@@ -80,7 +76,17 @@ export default function Chat() {
         </Select>
       </div>
       <div className="max-w-4xl mx-auto p-6 relative h-[calc(100vh-200px)] w-full">
-        <AgentChat agent={agent} name={name} key={name} />
+        {agent && <AgentChat agent={agent} name={name} key={name} />}
+        {!agent && (
+          <div className="h-full flex flex-col justify-center items-center text-center">
+            <h2 className="text-3xl font-bold mb-4">
+              Welcome to Code Act Agents
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Please select an agent to start chatting.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

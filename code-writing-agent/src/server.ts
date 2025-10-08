@@ -1,7 +1,7 @@
 import { routeAgentRequest } from "agents";
 
-export { ExecutionChatAgent } from "./server/execution-chat-agent.js";
-export { SimpleChatAgent } from "./server/simple-chat-agent.js";
+export { SimpleAgent } from "./server/agents/simple-agent.js";
+export { FetchAgent } from "./server/agents/fetch-agent.js";
 
 /**
  * Worker entry point that routes incoming requests to the appropriate handler

@@ -1,6 +1,6 @@
 import type { AgentContext } from "agents";
-import { CodeExecutor } from "./code-executor";
-import { BaseExecutionChatAgent } from "./base-execution-chat-agent";
+import { CodeExecutor } from "../code-executor";
+import { BaseExecutionChatAgent } from "../base-execution-chat-agent";
 
 const systemPrompt = `You are a helpful code execution assistant. 
 
@@ -16,7 +16,7 @@ return result;
 The next reply to your message will contain the result of your code execution, which you can use to help answer the user's question.  Reply to the user with plain text - do not use a code block for your answer.
 `;
 
-export class SimpleChatAgent extends BaseExecutionChatAgent {
+export class SimpleAgent extends BaseExecutionChatAgent {
   private _codeExecutor: CodeExecutor;
   constructor(ctx: AgentContext, env: Env) {
     super(ctx, env);

@@ -5,6 +5,7 @@ import {
   defaultSettingsMiddleware,
   wrapLanguageModel,
 } from "ai";
+import { google } from "@ai-sdk/google";
 import { env } from "cloudflare:workers";
 
 type Provider = Parameters<typeof createProviderRegistry>[0][string];
@@ -50,6 +51,7 @@ export const registry = createProviderRegistry({
   openai: createOpenAI({
     apiKey: env.OPENAI_API_KEY,
   }),
+  google,
 });
 
-export type AvailableModels = Parameters<typeof registry.languageModel>[0];
+export type AvailableModel = Parameters<typeof registry.languageModel>[0];
