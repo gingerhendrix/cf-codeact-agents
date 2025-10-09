@@ -17,13 +17,17 @@
     "agents",
     "codeact"
   ],
-  "author": "",
+  "imports": {
+    "#alchemy.run": "./alchemy.run.ts",
+    "#server/*": "./src/server/*.ts"
+  },
+  "author": "Gareth Andrew <gingerhendrix@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "2.2.5",
     "@cloudflare/vite-plugin": "1.13.11",
     "@cloudflare/vitest-pool-workers": "^0.9.11",
-    "@cloudflare/workers-types": "^4.20251004.0",
+    "@cloudflare/workers-types": "^4.20251008.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/bun": "latest",
     "@types/node": "^24.7.0",
@@ -35,13 +39,12 @@
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
-    "vitest": "3.2.4",
-    "wrangler": "^4.42.1"
+    "vitest": "3.2.4"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.17",
     "@ai-sdk/openai": "^2.0.44",
-    "@ai-sdk/react": "^2.0.60",
+    "@ai-sdk/react": "^2.0.61",
     "@ai-sdk/ui-utils": "^1.2.11",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -56,8 +59,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@xyflow/react": "^12.8.6",
-    "agents": "^0.2.8",
-    "ai": "^5.0.60",
+    "agents": "^0.2.9",
+    "ai": "^5.0.61",
     "alchemy": "https://pkg.pr.new/alchemy-run/alchemy@1067",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

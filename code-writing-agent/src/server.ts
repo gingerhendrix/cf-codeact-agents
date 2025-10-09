@@ -1,8 +1,8 @@
 import { routeAgentRequest } from "agents";
 import type { website } from "../alchemy.run";
 
-export { SimpleAgent } from "./server/agents/simple-agent.js";
 export { FetchAgent } from "./server/agents/fetch-agent.js";
+export { SimpleAgent } from "./server/agents/simple-agent.js";
 
 /**
  * Worker entry point that routes incoming requests to the appropriate handler

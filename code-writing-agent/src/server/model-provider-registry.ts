@@ -1,3 +1,5 @@
+import { env } from "cloudflare:workers";
+import { google } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   createProviderRegistry,
@@ -5,8 +7,6 @@ import {
   defaultSettingsMiddleware,
   wrapLanguageModel,
 } from "ai";
-import { google } from "@ai-sdk/google";
-import { env } from "cloudflare:workers";
 
 type Provider = Parameters<typeof createProviderRegistry>[0][string];
 

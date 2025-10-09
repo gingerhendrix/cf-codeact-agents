@@ -1,6 +1,7 @@
 import type { AgentContext } from "agents";
-import { CodeExecutor } from "../code-executor";
+import type { WorkerEnv } from "#alchemy.run";
 import { BaseExecutionChatAgent } from "../base-execution-chat-agent";
+import { CodeExecutor } from "../code-executor";
 
 const systemPrompt = `You are a helpful code execution assistant. 
 
@@ -18,7 +19,7 @@ The next reply to your message will contain the result of your code execution, w
 
 export class SimpleAgent extends BaseExecutionChatAgent {
   private _codeExecutor: CodeExecutor;
-  constructor(ctx: AgentContext, env: Env) {
+  constructor(ctx: AgentContext, env: WorkerEnv) {
     super(ctx, env);
     this._codeExecutor = new CodeExecutor(env.LOADER);
   }

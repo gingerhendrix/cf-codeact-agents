@@ -4,24 +4,25 @@ import {
   type Connection,
   type WSMessage,
 } from "agents";
-import { streamText, type ModelMessage } from "ai";
-import { CodeExecutor } from "./code-executor.js";
+import { type ModelMessage, streamText } from "ai";
+import type { WorkerEnv } from "#alchemy.run";
+import type { CodeExecutor } from "./code-executor.js";
 import {
-  InitResponse,
   type IncomingMessage,
+  InitResponse,
   type OutgoingMessage,
   type StreamPart,
 } from "./messages.js";
-import { registry, type AvailableModel } from "./model-provider-registry.js";
+import { type AvailableModel, registry } from "./model-provider-registry.js";
 import { parseCode } from "./utils/parseCode.js";
 
 type State = unknown;
 
-export abstract class BaseExecutionChatAgent extends Agent<Env, State> {
+export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
   messages: ModelMessage[];
   model: AvailableModel;
 
-  constructor(ctx: AgentContext, env: Env) {
+  constructor(ctx: AgentContext, env: WorkerEnv) {
     super(ctx, env);
     this.sql`create table if not exists messages (
       id text primary key,

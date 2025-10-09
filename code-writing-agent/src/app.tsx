@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/correctness/useUniqueElementIds: it's alright */
-import { useCallback, useEffect, useState } from "react";
-
+import { useEffect, useState } from "react";
+import { AgentChat } from "./components/agent-chat";
 import {
   Select,
   SelectContent,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select";
-import { AgentChat } from "./components/agent-chat";
 import { availableAgents } from "./shared";
 
 export default function Chat() {
@@ -35,13 +33,10 @@ export default function Chat() {
 
   const [agent, setAgent] = useState<string>("");
   const [name, setName] = useState<string>(crypto.randomUUID());
-  const handleAgentChange = useCallback(
-    (newAgent: string) => {
-      setAgent(newAgent);
-      setName(crypto.randomUUID()); // Reset name to a new UUID when agent changes
-    },
-    [setAgent, setName],
-  );
+  const handleAgentChange = (newAgent: string) => {
+    setAgent(newAgent);
+    setName(crypto.randomUUID()); // Reset name to a new UUID when agent changes
+  };
 
   return (
     <div className="h-[100vh] w-full p-4 flex flex-col justify-center items-center bg-fixed overflow-hidden">

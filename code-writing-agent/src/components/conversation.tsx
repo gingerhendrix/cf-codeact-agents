@@ -1,28 +1,28 @@
+import type { ModelMessage as ModelMessageType } from "ai";
+import { Loader, Trash } from "lucide-react";
 import {
   Conversation as AIConversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Loader, Trash } from "lucide-react";
+import type { Status } from "@/hooks/useExecutionAgent";
 import {
   PromptInput,
-  PromptInputBody,
-  PromptInputAttachments,
   PromptInputAttachment,
+  PromptInputAttachments,
+  PromptInputBody,
+  PromptInputButton,
+  type PromptInputMessage,
+  PromptInputModelSelect,
+  PromptInputModelSelectContent,
+  PromptInputModelSelectItem,
+  PromptInputModelSelectTrigger,
+  PromptInputModelSelectValue,
+  PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools,
-  PromptInputModelSelect,
-  PromptInputModelSelectTrigger,
-  PromptInputModelSelectValue,
-  PromptInputModelSelectContent,
-  PromptInputModelSelectItem,
-  PromptInputButton,
-  PromptInputSubmit,
-  type PromptInputMessage,
 } from "./ai-elements/prompt-input";
-import type { ModelMessage as ModelMessageType } from "ai";
-import type { Status } from "@/hooks/useExecutionAgent";
 import { ModelMessage } from "./model-message";
 
 export const Conversation = ({
@@ -54,9 +54,10 @@ export const Conversation = ({
       <AIConversation className="h-full">
         <ConversationContent>
           {messages.map((message, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: order is stable
             <ModelMessage key={i} message={message} />
           ))}
-          {status == "submitted" && <Loader />}
+          {status === "submitted" && <Loader />}
         </ConversationContent>
         <ConversationScrollButton />
       </AIConversation>

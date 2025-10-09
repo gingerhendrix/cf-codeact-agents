@@ -1,7 +1,7 @@
+import type { env as globalEnv } from "cloudflare:workers";
 import type { AgentContext } from "agents";
-import { CodeExecutor } from "../code-executor";
 import { BaseExecutionChatAgent } from "../base-execution-chat-agent";
-import type { env } from "cloudflare:workers";
+import { CodeExecutor } from "../code-executor";
 
 const systemPrompt = `You are a helpful code execution assistant. 
 
@@ -45,10 +45,10 @@ Once you have the data you need, you should return a concise and accurate answer
 
 export class FetchAgent extends BaseExecutionChatAgent {
   private _codeExecutor: CodeExecutor;
-  constructor(ctx: AgentContext, _env: typeof env) {
-    super(ctx, _env);
-    this._codeExecutor = new CodeExecutor(_env.LOADER, {
-      globalOutbound: _env.LoggingOutbound,
+  constructor(ctx: AgentContext, env: typeof globalEnv) {
+    super(ctx, env);
+    this._codeExecutor = new CodeExecutor(env.LOADER, {
+      globalOutbound: env.LoggingOutbound,
     });
   }
 

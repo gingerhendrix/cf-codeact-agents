@@ -1,8 +1,8 @@
-import { useExecutionAgent } from "@/hooks/useExecutionAgent";
 import { useState } from "react";
+import { useExecutionAgent } from "@/hooks/useExecutionAgent";
+import { availableModels } from "@/shared";
 import type { PromptInputMessage } from "./ai-elements/prompt-input";
 import { Conversation } from "./conversation";
-import { availableModels } from "@/shared";
 
 export function AgentChat({ name, agent }: { name: string; agent: string }) {
   const [agentInput, setAgentInput] = useState("");

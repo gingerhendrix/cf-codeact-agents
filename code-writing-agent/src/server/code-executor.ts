@@ -1,17 +1,13 @@
-//import type { Fetcher } from "@cloudflare/workers-types";
-
-type GlobalOutbound = Awaited<
-  ReturnType<Parameters<WorkerLoader["get"]>[1]>
->["globalOutbound"];
+import type { Fetcher, WorkerLoader } from "@cloudflare/workers-types";
 
 type CodeExecutorOptions = {
-  globalOutbound?: GlobalOutbound; //Fetcher | undefined | null;
+  globalOutbound?: Fetcher | null;
 };
 
 export class CodeExecutor {
   constructor(
     private loader: WorkerLoader,
-    private opts: CodeExecutorOptions,
+    private opts: CodeExecutorOptions = {},
   ) {}
   async executeCode(code: string): Promise<string> {
     try {
@@ -35,7 +31,6 @@ export class CodeExecutor {
         };
       });
 
-      // Now you can get the Worker's entrypoint and send requests to it.
       const defaultEntrypoint = worker.getEntrypoint();
       const response = await defaultEntrypoint.fetch("http://example.com");
       return response.text();

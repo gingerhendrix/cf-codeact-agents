@@ -1,13 +1,13 @@
-import {
-  ClearMessagesCommand,
-  InitCommand,
-  SendMessageCommand,
-  type IncomingMessage,
-  type OutgoingMessage,
-} from "@/server/messages";
 import { useAgent } from "agents/react";
 import type { ModelMessage, TextPart } from "ai";
 import { useState } from "react";
+import {
+  ClearMessagesCommand,
+  type IncomingMessage,
+  InitCommand,
+  type OutgoingMessage,
+  SendMessageCommand,
+} from "@/server/messages";
 
 export type Status = "submitted" | "streaming" | "ready" | "error";
 
