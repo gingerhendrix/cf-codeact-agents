@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   createProviderRegistry,
@@ -12,7 +12,11 @@ type Provider = Parameters<typeof createProviderRegistry>[0][string];
 
 export const openaiProvider = (): Provider => {
   const originalProvider = createOpenAI({
+    baseURL: `${env.GATEWAY_BASE_URL}/openai`,
     apiKey: env.OPENAI_API_KEY,
+    headers: {
+      "cf-aig-authorization": `Bearer ${env.GATEWAY_TOKEN}`,
+    },
   });
 
   const gpt5 = originalProvider("gpt-5");
@@ -22,7 +26,8 @@ export const openaiProvider = (): Provider => {
       settings: {
         providerOptions: {
           openai: {
-            reasoning_effort: effort,
+            reasoningSummary: "auto",
+            reasoningEffort: effort,
           },
         },
       },
@@ -47,11 +52,50 @@ export const openaiProvider = (): Provider => {
   });
 };
 
+export const googleProvider = (): Provider => {
+  const originalProvider = createGoogleGenerativeAI({
+    baseURL: `${env.GATEWAY_BASE_URL}/google-ai-studio/v1beta`,
+    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+    headers: {
+      "cf-aig-authorization": `Bearer ${env.GATEWAY_TOKEN}`,
+    },
+  });
+  const thinkingMiddleware = defaultSettingsMiddleware({
+    settings: {
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingBudget: 8192,
+            includeThoughts: true,
+          },
+        },
+      },
+    },
+  });
+  return customProvider({
+    languageModels: {
+      "gemini-2.5-flash": wrapLanguageModel({
+        model: originalProvider("gemini-2.5-flash-preview-09-2025"),
+        middleware: [thinkingMiddleware],
+      }),
+      "gemini-2.5-flash-lite": wrapLanguageModel({
+        model: originalProvider("gemini-2.5-flash-lite-preview-09-2025"),
+        middleware: [thinkingMiddleware],
+      }),
+    },
+    fallbackProvider: originalProvider,
+  });
+};
+
 export const registry = createProviderRegistry({
-  openai: createOpenAI({
-    apiKey: env.OPENAI_API_KEY,
+  openai: openaiProvider(),
+  google: createGoogleGenerativeAI({
+    baseURL: `${env.GATEWAY_BASE_URL}/google-ai-studio/v1beta`,
+    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+    headers: {
+      "cf-aig-authorization": `Bearer ${env.GATEWAY_TOKEN}`,
+    },
   }),
-  google,
 });
 
 export type AvailableModel = Parameters<typeof registry.languageModel>[0];

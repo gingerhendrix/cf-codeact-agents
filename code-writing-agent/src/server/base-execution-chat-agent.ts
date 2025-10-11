@@ -118,6 +118,7 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
   }
 
   private async generate(messages: ModelMessage[]) {
+    console.log("Using model:", this.model);
     const result = streamText({
       system: this.systemPrompt(),
       model: registry.languageModel(this.model),

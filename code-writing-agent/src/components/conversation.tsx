@@ -24,6 +24,11 @@ import {
   PromptInputTools,
 } from "./ai-elements/prompt-input";
 import { ModelMessage } from "./model-message";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "./ai-elements/reasoning";
 
 export const Conversation = ({
   messages,
@@ -35,6 +40,7 @@ export const Conversation = ({
   selectedModel,
   clearMessages,
   models,
+  reasoning,
 }: {
   messages: ModelMessageType[];
   input: string;
@@ -45,6 +51,7 @@ export const Conversation = ({
   clearMessages: () => void;
   models: { name: string; value: string }[];
   selectedModel?: string;
+  reasoning: string;
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
@@ -58,7 +65,14 @@ export const Conversation = ({
             <ModelMessage key={i} message={message} />
           ))}
           {status === "submitted" && <Loader />}
+          {reasoning && (
+            <Reasoning>
+              <ReasoningTrigger />
+              <ReasoningContent>{reasoning || ""}</ReasoningContent>
+            </Reasoning>
+          )}
         </ConversationContent>
+
         <ConversationScrollButton />
       </AIConversation>
 

@@ -26,6 +26,7 @@ export function useExecutionAgent({
     role: "assistant",
     content: [],
   });
+  const [reasoning, setReasoning] = useState<string>("");
   const [status, setStatus] = useState<Status | null>(null);
   const [model, setModel] = useState<string>("");
 
@@ -70,6 +71,12 @@ export function useExecutionAgent({
               content: newContent,
             };
           });
+        } else if (msg.event.type === "reasoning-start") {
+          setReasoning("");
+        } else if (msg.event.type === "reasoning-delta") {
+          console.log("Reasoning delta:", msg.event.text);
+          const delta = msg.event.text;
+          setReasoning((prev) => prev + delta);
         }
       }
     },
@@ -101,6 +108,7 @@ export function useExecutionAgent({
     sendMessage,
     clearMessages,
     model,
+    reasoning,
     setModel: handleSetModel,
   };
 }
