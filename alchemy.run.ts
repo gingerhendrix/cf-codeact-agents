@@ -55,6 +55,7 @@ export const website = await Vite("web", {
 		// Agents
 		SimpleAgent: Agent("SimpleAgent"),
 		FetchAgent: Agent("FetchAgent"),
+		// Outbounds
 		LoggingOutbound: loggingOutbound,
 	},
 });

@@ -74,6 +74,10 @@ export const googleProvider = (): Provider => {
   });
   return customProvider({
     languageModels: {
+      "gemini-3-pro": wrapLanguageModel({
+        model: originalProvider("gemini-3-pro-preview"),
+        middleware: [thinkingMiddleware],
+      }),
       "gemini-2.5-flash": wrapLanguageModel({
         model: originalProvider("gemini-2.5-flash-preview-09-2025"),
         middleware: [thinkingMiddleware],
@@ -89,13 +93,7 @@ export const googleProvider = (): Provider => {
 
 export const registry = createProviderRegistry({
   openai: openaiProvider(),
-  google: createGoogleGenerativeAI({
-    baseURL: `${env.GATEWAY_BASE_URL}/google-ai-studio/v1beta`,
-    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    headers: {
-      "cf-aig-authorization": `Bearer ${env.GATEWAY_TOKEN}`,
-    },
-  }),
+  google: googleProvider(),
 });
 
 export type AvailableModel = Parameters<typeof registry.languageModel>[0];

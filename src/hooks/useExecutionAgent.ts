@@ -54,6 +54,7 @@ export function useExecutionAgent({
             content: [],
           });
         } else if (msg.event.type === "finish") {
+          setReasoning("");
           setStatus("ready");
         } else if (msg.event.type === "text-start") {
           setStreamingMessage((prev) => ({
