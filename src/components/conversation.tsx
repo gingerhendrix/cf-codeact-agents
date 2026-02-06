@@ -23,7 +23,7 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "./ai-elements/prompt-input";
-import { UIMessageComponent } from "./model-message";
+import { UIMessageComponent } from "./ui-message";
 
 export const Conversation = ({
   messages,
