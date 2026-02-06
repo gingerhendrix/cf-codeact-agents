@@ -97,6 +97,7 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
       parts: [{ type: "text", text: message }],
     };
     this.pushMessage(userMessage);
+    this.broadcastNewMessage(userMessage);
     await this.generate();
   }
 

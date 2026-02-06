@@ -13,6 +13,12 @@ import {
   ReasoningTrigger,
 } from "./ai-elements/reasoning";
 import {
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtHeader,
+  ChainOfThoughtStep,
+} from "./ai-elements/chain-of-thought";
+import {
   CodeBlock,
   CodeBlockCopyButton,
 } from "./ai-elements/code-block";
@@ -20,6 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export const UIMessageComponent = ({ message }: { message: UIMessage }) => {
+  const reasoningParts = message.parts.filter((p) => p.type === "reasoning");
+  let reasoningRendered = false;
+
   return (
     <Message from={message.role}>
       <MessageContent variant="flat">
@@ -34,12 +43,46 @@ export const UIMessageComponent = ({ message }: { message: UIMessage }) => {
             );
           }
           if (part.type === "reasoning") {
+            if (reasoningRendered) return null;
+            reasoningRendered = true;
+
+            if (reasoningParts.length === 1) {
+              return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: order is stable
+                <Reasoning key={i}>
+                  <ReasoningTrigger />
+                  <ReasoningContent>{part.text}</ReasoningContent>
+                </Reasoning>
+              );
+            }
+
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: order is stable
-              <Reasoning key={i}>
-                <ReasoningTrigger />
-                <ReasoningContent>{part.text}</ReasoningContent>
-              </Reasoning>
+              <ChainOfThought key={i}>
+                <ChainOfThoughtHeader>
+                  Thinking ({reasoningParts.length} steps)
+                </ChainOfThoughtHeader>
+                <ChainOfThoughtContent>
+                  {reasoningParts.map((rp, ri) => (
+                    <ChainOfThoughtStep
+                      // biome-ignore lint/suspicious/noArrayIndexKey: order is stable
+                      key={ri}
+                      label={`Step ${ri + 1}`}
+                      status={
+                        rp.type === "reasoning" &&
+                        "state" in rp &&
+                        rp.state === "streaming"
+                          ? "active"
+                          : "complete"
+                      }
+                    >
+                      <Response className="text-muted-foreground text-xs">
+                        {rp.type === "reasoning" ? rp.text : ""}
+                      </Response>
+                    </ChainOfThoughtStep>
+                  ))}
+                </ChainOfThoughtContent>
+              </ChainOfThought>
             );
           }
           if ("toolCallId" in part) {
