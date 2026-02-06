@@ -23,6 +23,7 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "./ai-elements/prompt-input";
+import { Suggestion, Suggestions } from "./ai-elements/suggestion";
 import { UIMessageComponent } from "./ui-message";
 
 export const Conversation = ({
@@ -61,6 +62,23 @@ export const Conversation = ({
 
         <ConversationScrollButton />
       </AIConversation>
+
+      {messages.length === 0 && (
+        <Suggestions className="pb-4">
+          <Suggestion
+            suggestion="What is the sum of the first 20 fibonacci numbers?"
+            onClick={onInputChange}
+          />
+          <Suggestion
+            suggestion="What's tomorrow's weather in Belfast?"
+            onClick={onInputChange}
+          />
+          <Suggestion
+            suggestion="What are the top global news stories?"
+            onClick={onInputChange}
+          />
+        </Suggestions>
+      )}
 
       <PromptInput onSubmit={onSubmit} className="mt-4" globalDrop multiple>
         <PromptInputBody>
