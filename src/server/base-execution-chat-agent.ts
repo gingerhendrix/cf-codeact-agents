@@ -109,7 +109,7 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
     const result = streamText({
       system: this.systemPrompt(),
       model: registry.languageModel(this.model),
-      messages: convertToModelMessages(this.messages),
+      messages: await convertToModelMessages(this.messages),
       tools: {
         executeCode: tool({
           description:

@@ -1,12 +1,12 @@
-import type { Fetcher, WorkerLoader } from "@cloudflare/workers-types";
+import type { WorkerEnv } from "#alchemy.run";
 
 type CodeExecutorOptions = {
-  globalOutbound?: Fetcher | null;
+  globalOutbound?: WorkerEnv["LoggingOutbound"] | null;
 };
 
 export class CodeExecutor {
   constructor(
-    private loader: WorkerLoader,
+    private loader: WorkerEnv["LOADER"],
     private opts: CodeExecutorOptions = {},
   ) {}
   async executeCode(code: string): Promise<string> {
