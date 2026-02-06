@@ -1,6 +1,7 @@
 import type { UIMessage } from "ai";
 import {
   CheckCircleIcon,
+  ChevronRightIcon,
   CircleIcon,
   PlayIcon,
   XCircleIcon,
@@ -23,6 +24,11 @@ import {
   CodeBlockCopyButton,
 } from "./ai-elements/code-block";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 export const UIMessageComponent = ({ message }: { message: UIMessage }) => {
@@ -148,59 +154,67 @@ function ExecuteCodeView({
     | undefined;
 
   return (
-    <div className="my-2 rounded-lg border bg-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium border-b">
+    <Collapsible
+      defaultOpen={false}
+      className="group my-2 rounded-lg border bg-card overflow-hidden"
+    >
+      <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors">
+        <ChevronRightIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
         <span>Execute Code</span>
         {getStatusBadge(part.state)}
-      </div>
+      </CollapsibleTrigger>
 
-      {/* Code input with syntax highlighting */}
-      {input?.code && (
-        <CodeBlock code={input.code} language={input.language ?? "javascript"}>
-          <CodeBlockCopyButton />
-        </CodeBlock>
-      )}
+      <CollapsibleContent>
+        {/* Code input with syntax highlighting */}
+        {input?.code && (
+          <CodeBlock
+            code={input.code}
+            language={input.language ?? "javascript"}
+          >
+            <CodeBlockCopyButton />
+          </CodeBlock>
+        )}
 
-      {/* Streaming state */}
-      {part.state === "input-streaming" && !input?.code && (
-        <div className="px-3 py-2 text-sm text-muted-foreground animate-pulse">
-          Generating code...
-        </div>
-      )}
-
-      {/* Executing state */}
-      {part.state === "input-available" && (
-        <div className="px-3 py-2 text-sm text-muted-foreground animate-pulse">
-          Executing...
-        </div>
-      )}
-
-      {/* Output */}
-      {part.state === "output-available" && part.output != null && (
-        <div className="border-t px-3 py-2">
-          <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">
-            Result
+        {/* Streaming state */}
+        {part.state === "input-streaming" && !input?.code && (
+          <div className="px-3 py-2 text-sm text-muted-foreground animate-pulse">
+            Generating code...
           </div>
-          <pre className="text-sm overflow-x-auto whitespace-pre-wrap">
-            {typeof part.output === "string"
-              ? part.output
-              : JSON.stringify(part.output, null, 2)}
-          </pre>
-        </div>
-      )}
+        )}
 
-      {/* Error */}
-      {part.state === "output-error" && part.errorText && (
-        <div className="border-t px-3 py-2 bg-destructive/10">
-          <div className="text-xs text-destructive mb-1 uppercase tracking-wide font-medium">
-            Error
+        {/* Executing state */}
+        {part.state === "input-available" && (
+          <div className="px-3 py-2 text-sm text-muted-foreground animate-pulse">
+            Executing...
           </div>
-          <pre className="text-sm text-destructive overflow-x-auto whitespace-pre-wrap">
-            {part.errorText}
-          </pre>
-        </div>
-      )}
-    </div>
+        )}
+
+        {/* Output */}
+        {part.state === "output-available" && part.output != null && (
+          <div className="border-t px-3 py-2">
+            <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">
+              Result
+            </div>
+            <pre className="text-sm overflow-x-auto whitespace-pre-wrap">
+              {typeof part.output === "string"
+                ? part.output
+                : JSON.stringify(part.output, null, 2)}
+            </pre>
+          </div>
+        )}
+
+        {/* Error */}
+        {part.state === "output-error" && part.errorText && (
+          <div className="border-t px-3 py-2 bg-destructive/10">
+            <div className="text-xs text-destructive mb-1 uppercase tracking-wide font-medium">
+              Error
+            </div>
+            <pre className="text-sm text-destructive overflow-x-auto whitespace-pre-wrap">
+              {part.errorText}
+            </pre>
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
