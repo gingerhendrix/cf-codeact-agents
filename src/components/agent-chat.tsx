@@ -28,7 +28,6 @@ export function AgentChat({ name, agent }: { name: string; agent: string }) {
     clearMessages,
     setModel,
     model: selectedModel,
-    reasoning,
   } = useExecutionAgent({ name, agent });
 
   return (
@@ -42,7 +41,6 @@ export function AgentChat({ name, agent }: { name: string; agent: string }) {
       models={models}
       selectedModel={selectedModel}
       onModelChange={setModel}
-      reasoning={reasoning}
     />
   );
 }

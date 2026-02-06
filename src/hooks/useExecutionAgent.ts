@@ -1,6 +1,6 @@
 import { useAgent } from "agents/react";
-import type { ModelMessage, TextPart } from "ai";
-import { useState } from "react";
+import type { UIMessage, UIMessageChunk } from "ai";
+import { useRef, useState } from "react";
 import {
   ClearMessagesCommand,
   type IncomingMessage,
@@ -11,6 +11,9 @@ import {
 
 export type Status = "submitted" | "streaming" | "ready" | "error";
 
+type Parts = UIMessage["parts"];
+type Part = Parts[number];
+
 export function useExecutionAgent({
   name,
   agent: agentName,
@@ -18,24 +21,142 @@ export function useExecutionAgent({
   name: string;
   agent: string;
 }) {
-  const [messages, setMessages] = useState<ModelMessage[]>([]);
-  const [streamingMessage, setStreamingMessage] = useState<{
-    role: "assistant";
-    content: TextPart[];
-  }>({
+  const [messages, setMessages] = useState<UIMessage[]>([]);
+  const [streamingMessage, setStreamingMessage] = useState<UIMessage>({
+    id: "",
     role: "assistant",
-    content: [],
+    parts: [],
   });
-  const [reasoning, setReasoning] = useState<string>("");
   const [status, setStatus] = useState<Status | null>(null);
   const [model, setModel] = useState<string>("");
+
+  const currentTextIdRef = useRef<string | null>(null);
+  const currentReasoningIdRef = useRef<string | null>(null);
+
+  const updateParts = (
+    updater: (parts: Parts) => Parts,
+  ) => {
+    setStreamingMessage((prev) => ({
+      ...prev,
+      parts: updater(prev.parts),
+    }));
+  };
+
+  const handleStreamEvent = (event: UIMessageChunk) => {
+    if (event.type === "start") {
+      setStatus("streaming");
+      setStreamingMessage({
+        id: event.messageId ?? "",
+        role: "assistant",
+        parts: [],
+      });
+      currentTextIdRef.current = null;
+      currentReasoningIdRef.current = null;
+    } else if (event.type === "finish") {
+      setStatus("ready");
+    } else if (event.type === "text-start") {
+      currentTextIdRef.current = event.id;
+      updateParts((parts) => [
+        ...parts,
+        { type: "text" as const, text: "" },
+      ]);
+    } else if (event.type === "text-delta") {
+      updateParts((parts) => {
+        const newParts = [...parts];
+        for (let i = newParts.length - 1; i >= 0; i--) {
+          const p = newParts[i];
+          if (p.type === "text") {
+            newParts[i] = { type: "text" as const, text: p.text + event.delta };
+            break;
+          }
+        }
+        return newParts;
+      });
+    } else if (event.type === "reasoning-start") {
+      currentReasoningIdRef.current = event.id;
+      updateParts((parts) => [
+        ...parts,
+        { type: "reasoning" as const, text: "", state: "streaming" as const },
+      ]);
+    } else if (event.type === "reasoning-delta") {
+      updateParts((parts) => {
+        const newParts = [...parts];
+        for (let i = newParts.length - 1; i >= 0; i--) {
+          const p = newParts[i];
+          if (p.type === "reasoning") {
+            newParts[i] = { ...p, text: p.text + event.delta };
+            break;
+          }
+        }
+        return newParts;
+      });
+    } else if (event.type === "reasoning-end") {
+      updateParts((parts) => {
+        const newParts = [...parts];
+        for (let i = newParts.length - 1; i >= 0; i--) {
+          const p = newParts[i];
+          if (p.type === "reasoning") {
+            newParts[i] = { ...p, state: "done" as const };
+            break;
+          }
+        }
+        return newParts;
+      });
+    } else if (event.type === "tool-input-start") {
+      updateParts((parts) => [
+        ...parts,
+        {
+          type: "dynamic-tool",
+          toolName: event.toolName,
+          toolCallId: event.toolCallId,
+          state: "input-streaming",
+          input: undefined,
+        } as Part,
+      ]);
+    } else if (event.type === "tool-input-available") {
+      updateParts((parts) =>
+        parts.map((p) =>
+          "toolCallId" in p && p.toolCallId === event.toolCallId
+            ? ({
+                ...p,
+                state: "input-available",
+                input: event.input,
+              } as Part)
+            : p,
+        ),
+      );
+    } else if (event.type === "tool-output-available") {
+      updateParts((parts) =>
+        parts.map((p) =>
+          "toolCallId" in p && p.toolCallId === event.toolCallId
+            ? ({
+                ...p,
+                state: "output-available",
+                output: event.output,
+              } as Part)
+            : p,
+        ),
+      );
+    } else if (event.type === "tool-output-error") {
+      updateParts((parts) =>
+        parts.map((p) =>
+          "toolCallId" in p && p.toolCallId === event.toolCallId
+            ? ({
+                ...p,
+                state: "output-error",
+                errorText: event.errorText,
+              } as Part)
+            : p,
+        ),
+      );
+    }
+  };
 
   const agent = useAgent({
     name,
     agent: agentName,
     onMessage: (message) => {
       const msg: OutgoingMessage = JSON.parse(message.data);
-      console.log("Received message:", msg);
       if (msg.type === "init") {
         setMessages(msg.messages);
         setModel(msg.model);
@@ -47,38 +168,7 @@ export function useExecutionAgent({
       } else if (msg.type === "model_changed") {
         setModel(msg.model);
       } else if (msg.type === "StreamEvent") {
-        if (msg.event.type === "start") {
-          setStatus("streaming");
-          setStreamingMessage({
-            role: "assistant",
-            content: [],
-          });
-        } else if (msg.event.type === "finish") {
-          setReasoning("");
-          setStatus("ready");
-        } else if (msg.event.type === "text-start") {
-          setStreamingMessage((prev) => ({
-            ...prev,
-            content: [...prev.content, { type: "text", text: "" }],
-          }));
-        } else if (msg.event.type === "text-delta") {
-          const delta = msg.event.text;
-          setStreamingMessage((prev) => {
-            const newContent = [...prev.content];
-            const lastPart = newContent.at(-1);
-            lastPart!.text = (lastPart?.text || "") + delta;
-            return {
-              ...prev,
-              content: newContent,
-            };
-          });
-        } else if (msg.event.type === "reasoning-start") {
-          setReasoning("");
-        } else if (msg.event.type === "reasoning-delta") {
-          console.log("Reasoning delta:", msg.event.text);
-          const delta = msg.event.text;
-          setReasoning((prev) => prev + delta);
-        }
+        handleStreamEvent(msg.event);
       }
     },
     onOpen: () => send(InitCommand()),
@@ -104,12 +194,13 @@ export function useExecutionAgent({
   return {
     agent,
     messages:
-      status === "streaming" ? [...messages, streamingMessage] : messages,
+      status === "streaming"
+        ? [...messages, streamingMessage]
+        : messages,
     status,
     sendMessage,
     clearMessages,
     model,
-    reasoning,
     setModel: handleSetModel,
   };
 }

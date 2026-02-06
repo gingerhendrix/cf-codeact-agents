@@ -3,18 +3,15 @@ import type { WorkerEnv } from "#alchemy.run";
 import { BaseExecutionChatAgent } from "../base-execution-chat-agent";
 import { CodeExecutor } from "../code-executor";
 
-const systemPrompt = `You are a helpful code execution assistant. 
+const systemPrompt = `You are a helpful code execution assistant.
 
-When given a user question, if it is possible to answer it by executing code, do so by writing a code snippet in a single JavaScript code block. Your code may use await and async functions.
+When given a user question, if it is possible to answer it by executing code, use the executeCode tool. Your code may use await and async functions, and should return a JSON-serializable value.
 
-\`\`\`js
-const result = 2 + 2;
+Example: to compute 2 + 2, call executeCode with:
+  language: "js"
+  code: "const result = 2 + 2; return result;"
 
-// You must return the result, the result must be any json serializable value
-return result;
-\`\`\`
-
-The next reply to your message will contain the result of your code execution, which you can use to help answer the user's question.  Reply to the user with plain text - do not use a code block for your answer.
+You will receive the result of the code execution, which you can use to help answer the user's question. Reply to the user with plain text after receiving the result.
 `;
 
 export class SimpleAgent extends BaseExecutionChatAgent {

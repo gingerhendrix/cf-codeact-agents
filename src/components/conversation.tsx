@@ -1,4 +1,4 @@
-import type { ModelMessage as ModelMessageType } from "ai";
+import type { UIMessage } from "ai";
 import { Loader, Trash } from "lucide-react";
 import {
   Conversation as AIConversation,
@@ -23,12 +23,7 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "./ai-elements/prompt-input";
-import { ModelMessage } from "./model-message";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "./ai-elements/reasoning";
+import { UIMessageComponent } from "./model-message";
 
 export const Conversation = ({
   messages,
@@ -40,9 +35,8 @@ export const Conversation = ({
   selectedModel,
   clearMessages,
   models,
-  reasoning,
 }: {
-  messages: ModelMessageType[];
+  messages: UIMessage[];
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (message: PromptInputMessage) => void;
@@ -51,7 +45,6 @@ export const Conversation = ({
   clearMessages: () => void;
   models: { name: string; value: string }[];
   selectedModel?: string;
-  reasoning: string;
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
@@ -60,17 +53,10 @@ export const Conversation = ({
     <div className="flex flex-col h-full">
       <AIConversation className="h-full">
         <ConversationContent>
-          {messages.map((message, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: order is stable
-            <ModelMessage key={i} message={message} />
+          {messages.map((message) => (
+            <UIMessageComponent key={message.id} message={message} />
           ))}
           {status === "submitted" && <Loader />}
-          {reasoning && (
-            <Reasoning>
-              <ReasoningTrigger />
-              <ReasoningContent>{reasoning || ""}</ReasoningContent>
-            </Reasoning>
-          )}
         </ConversationContent>
 
         <ConversationScrollButton />

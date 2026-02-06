@@ -4,22 +4,30 @@ import {
   type Connection,
   type WSMessage,
 } from "agents";
-import { type ModelMessage, streamText } from "ai";
+import {
+  type UIMessage,
+  type UIMessageChunk,
+  convertToModelMessages,
+  generateId,
+  readUIMessageStream,
+  stepCountIs,
+  streamText,
+  tool,
+} from "ai";
+import { z } from "zod";
 import type { WorkerEnv } from "#alchemy.run";
 import type { CodeExecutor } from "./code-executor.js";
 import {
   type IncomingMessage,
   InitResponse,
   type OutgoingMessage,
-  type StreamPart,
 } from "./messages.js";
 import { type AvailableModel, registry } from "./model-provider-registry.js";
-import { parseCode } from "./utils/parseCode.js";
 
 type State = unknown;
 
 export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
-  messages: ModelMessage[];
+  messages: UIMessage[];
   model: AvailableModel;
 
   constructor(ctx: AgentContext, env: WorkerEnv) {
@@ -83,51 +91,71 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
   }
 
   async handleSendMessage(_connection: Connection, message: string) {
-    const userMessage: ModelMessage = {
+    const userMessage: UIMessage = {
+      id: generateId(),
       role: "user",
-      content: message,
+      parts: [{ type: "text", text: message }],
     };
     this.pushMessage(userMessage);
-    await this.agentLoop();
+    await this.generate();
   }
 
-  private async agentLoop() {
-    let continueLoop = true;
-    while (continueLoop) {
-      const result = await this.generate(this.messages);
-      const response = await result.response;
-      for (const msg of response.messages) {
-        this.pushMessage(msg);
-      }
-      const text = await result.text;
-      console.log("Generated text:", text);
-      const code = parseCode(text);
-      console.log("Parsed code:", code);
-
-      if (code) {
-        const executionResult = await this.codeExecutor().executeCode(code);
-        const resultMessage: ModelMessage = {
-          role: "user",
-          content: `<result>${executionResult}</result>`,
-        };
-        this.pushMessage(resultMessage);
-      } else {
-        continueLoop = false;
-      }
-    }
-  }
-
-  private async generate(messages: ModelMessage[]) {
+  private async generate() {
     console.log("Using model:", this.model);
+
+    const executor = this.codeExecutor();
+
     const result = streamText({
       system: this.systemPrompt(),
       model: registry.languageModel(this.model),
-      messages,
+      messages: convertToModelMessages(this.messages),
+      tools: {
+        executeCode: tool({
+          description:
+            "Execute JavaScript code in a sandboxed environment. The code can use async/await and should return a JSON-serializable value.",
+          inputSchema: z.object({
+            language: z.string().describe("The programming language (js)"),
+            code: z
+              .string()
+              .describe("The JavaScript code to execute"),
+          }),
+          execute: async ({ code }) => {
+            return await executor.executeCode(code);
+          },
+        }),
+      },
+      stopWhen: stepCountIs(10),
     });
-    for await (const part of result.fullStream) {
-      this.broadcastPart(part);
+
+    // Get the UIMessage stream and tee it: one for broadcasting, one for building the final message
+    const uiStream = result.toUIMessageStream();
+    const [broadcastStream, readStream] = uiStream.tee();
+
+    // Start reading the final message in parallel
+    const messageReader = readUIMessageStream({ stream: readStream });
+
+    // Broadcast each chunk to all connected clients
+    const reader = broadcastStream.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        this.broadcastChunk(value);
+      }
+    } finally {
+      reader.releaseLock();
     }
-    return result;
+
+    // Get the final assembled UIMessage from readUIMessageStream
+    let finalMessage: UIMessage | undefined;
+    for await (const msg of messageReader) {
+      finalMessage = msg;
+    }
+
+    if (finalMessage) {
+      this.pushMessage(finalMessage);
+      this.broadcastNewMessage(finalMessage);
+    }
   }
 
   async handleInit(connection: Connection) {
@@ -138,14 +166,13 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
     connection.send(JSON.stringify(message));
   }
 
-  private pushMessage(message: ModelMessage) {
+  private pushMessage(message: UIMessage) {
     this.messages.push(message);
     this
-      .sql`insert into messages (id, message) values (${crypto.randomUUID()}, ${JSON.stringify(message)})`;
-    this.broadcastNewMessage(message);
+      .sql`insert into messages (id, message) values (${message.id}, ${JSON.stringify(message)})`;
   }
 
-  private broadcastNewMessage(message: ModelMessage) {
+  private broadcastNewMessage(message: UIMessage) {
     const outgoing: OutgoingMessage = {
       type: "new_message",
       message,
@@ -153,10 +180,10 @@ export abstract class BaseExecutionChatAgent extends Agent<WorkerEnv, State> {
     this.broadcast(JSON.stringify(outgoing));
   }
 
-  private broadcastPart(part: StreamPart) {
+  private broadcastChunk(chunk: UIMessageChunk) {
     const outgoing: OutgoingMessage = {
       type: "StreamEvent",
-      event: part,
+      event: chunk,
     };
     this.broadcast(JSON.stringify(outgoing));
   }

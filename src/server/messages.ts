@@ -1,6 +1,4 @@
-import type { ModelMessage, TextStreamPart, ToolSet } from "ai";
-
-export type StreamPart = TextStreamPart<ToolSet>;
+import type { UIMessage, UIMessageChunk } from "ai";
 
 export type InitCommand = {
   type: "init";
@@ -13,11 +11,11 @@ export function InitCommand(): InitCommand {
 
 export type InitResponse = {
   type: "init";
-  messages: ModelMessage[];
+  messages: UIMessage[];
   model: string;
 };
 export function InitResponse(
-  messages: ModelMessage[],
+  messages: UIMessage[],
   model: string,
 ): InitResponse {
   return {
@@ -72,12 +70,12 @@ export function ClearMessagesCommand(): ClearMessagesCommand {
 
 export type NewMessageEvent = {
   type: "new_message";
-  message: ModelMessage;
+  message: UIMessage;
 };
 
 export type StreamEvent = {
   type: "StreamEvent";
-  event: TextStreamPart<ToolSet>;
+  event: UIMessageChunk;
 };
 
 export type MessagesClearedEvent = {
